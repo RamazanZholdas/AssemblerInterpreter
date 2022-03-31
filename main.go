@@ -22,7 +22,7 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		if strings.Contains(scanner.Text(), "ret") {
-			fmt.Println("Resutl of function:")
+			fmt.Println("Result of function:")
 			for i := range sliceOfVar {
 				fmt.Println(sliceOfVar[i], sliceOfValues[i])
 			}
