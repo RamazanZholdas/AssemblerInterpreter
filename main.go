@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -10,7 +9,6 @@ import (
 	"strings"
 )
 
-//починить проверку хекс числа и парсить тока нужную часть хекс числа так как при декларации хекс числа в конце ставят h
 func main() {
 	file, err := os.Open("assemblerCode.txt")
 	if err != nil {
@@ -23,24 +21,34 @@ func main() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		fmt.Println(scanner.Text())
-		if strings.Contains(scanner.Text(), "DB") {
+		if strings.Contains(scanner.Text(), "ret") {
+			fmt.Println("Resutl of function:")
+			for i := range sliceOfVar {
+				fmt.Println(sliceOfVar[i], sliceOfValues[i])
+			}
+			sliceOfVar = []string{}
+			sliceOfValues = []string{}
+		} else if strings.Contains(scanner.Text(), "DB") {
 			temp := strings.Split(scanner.Text(), " ")
 			sliceOfVar = append(sliceOfVar, temp[0])
 			sliceOfValues = append(sliceOfValues, temp[2])
-			//fmt.Println(sliceOfVar, sliceOfValues)
 		} else if strings.Contains(scanner.Text(), "INC") || strings.Contains(scanner.Text(), "DEC") {
 			temp := strings.Split(scanner.Text(), " ")
 			for i := range sliceOfVar {
 				if sliceOfVar[i] == temp[1] {
-					isHex := false
-					parseThis := sliceOfValues[i]
-					if parseThis, err = IsHex(sliceOfValues[i]); err == nil {
-						isHex = true
-					}
-					tempVar, err := strconv.Atoi(parseThis)
-					if err != nil {
-						log.Fatal(err)
+					var tempVar int
+					var itsHex, itsBin bool
+					if strings.Contains(sliceOfValues[i], "h") {
+						tempVar = hexToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+						itsHex = true
+					} else if strings.Contains(sliceOfValues[i], "b") {
+						tempVar = binToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+						itsBin = true
+					} else {
+						tempVar, err = strconv.Atoi(sliceOfValues[i])
+						if err != nil {
+							log.Fatal(err)
+						}
 					}
 					switch temp[0] {
 					case "INC":
@@ -48,8 +56,10 @@ func main() {
 					case "DEC":
 						tempVar--
 					}
-					if isHex {
-						sliceOfValues[i] = DecToHex(tempVar)
+					if itsHex {
+						sliceOfValues[i] = decToHex(strconv.Itoa(tempVar)) + "h"
+					} else if itsBin {
+						sliceOfValues[i] = decToBin(strconv.Itoa(tempVar)) + "b"
 					} else {
 						sliceOfValues[i] = strconv.Itoa(tempVar)
 					}
@@ -60,27 +70,39 @@ func main() {
 			strings.Contains(scanner.Text(), "MUL") || strings.Contains(scanner.Text(), "DIV") ||
 			strings.Contains(scanner.Text(), "MOV") || strings.Contains(scanner.Text(), "XCHG") {
 			var firstVar, secondVar, index int
-			var isHex1, isHex2 bool
+			var result, result2 string
+			var itsHex, itsBin, xchg bool
 			temp := strings.Split(scanner.Text(), " ")
 			for i := range sliceOfVar {
 				if sliceOfVar[i] == temp[1] {
-					isHex1 = false
-					parseThis := sliceOfValues[i]
-					if parseThis, err = IsHex(sliceOfValues[i]); err == nil {
-						isHex1 = true
+					if strings.Contains(sliceOfValues[i], "h") {
+						firstVar = hexToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+						itsHex = true
+					} else if strings.Contains(sliceOfValues[i], "b") {
+						firstVar = binToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+						itsBin = true
+					} else {
+						firstVar, err = strconv.Atoi(sliceOfValues[i])
+						if err != nil {
+							log.Fatal(err)
+						}
 					}
-					firstVar, err = strconv.Atoi(parseThis)
 					if err != nil {
 						log.Fatal(err)
 					}
 					index = i
-				} else if sliceOfVar[i] == temp[2] {
-					isHex2 = false
-					parseThis := sliceOfValues[i]
-					if parseThis, err = IsHex(sliceOfValues[i]); err == nil {
-						isHex2 = true
+				}
+				if sliceOfVar[i] == temp[2] {
+					if strings.Contains(sliceOfValues[i], "h") {
+						secondVar = hexToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+					} else if strings.Contains(sliceOfValues[i], "b") {
+						secondVar = binToDec(sliceOfValues[i][:len(sliceOfValues[i])-1])
+					} else {
+						secondVar, err = strconv.Atoi(sliceOfValues[i])
+						if err != nil {
+							log.Fatal(err)
+						}
 					}
-					secondVar, err = strconv.Atoi(parseThis)
 					if err != nil {
 						log.Fatal(err)
 					}
@@ -88,92 +110,82 @@ func main() {
 			}
 			switch temp[0] {
 			case "ADD":
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(firstVar + secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(firstVar + secondVar)
-				}
+				result = strconv.Itoa(firstVar + secondVar)
 			case "SUB":
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(firstVar - secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(firstVar - secondVar)
-				}
+				result = strconv.Itoa(firstVar - secondVar)
+				fmt.Println(result)
 			case "MUL":
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(firstVar * secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(firstVar * secondVar)
-				}
+				result = strconv.Itoa(firstVar * secondVar)
 			case "DIV":
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(firstVar / secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(firstVar / secondVar)
-				}
+				result = strconv.Itoa(firstVar / secondVar)
 			case "MOV":
-				secondVar = firstVar
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(secondVar)
-				}
+				result = strconv.Itoa(secondVar)
 			case "XCHG":
-				if isHex1 && isHex2 {
-					sliceOfValues[index] = DecToHex(firstVar)
-					sliceOfValues[index+1] = DecToHex(secondVar)
-				} else {
-					sliceOfValues[index] = strconv.Itoa(secondVar)
-					sliceOfValues[index+1] = strconv.Itoa(firstVar)
-				}
+				xchg = true
+				result = strconv.Itoa(secondVar)
+				result2 = strconv.Itoa(firstVar)
 			}
-			//fmt.Println("After ops:", sliceOfVar, sliceOfValues)
+
+			if itsHex {
+				sliceOfValues[index] = decToHex(result) + "h"
+			} else if itsBin {
+				sliceOfValues[index] = decToBin(result) + "b"
+			} else if xchg {
+				if strings.Contains(result, "h") {
+					sliceOfValues[index] = decToHex(result) + "h"
+					sliceOfValues[index+1] = decToHex(result2) + "h"
+				} else if strings.Contains(result, "b") {
+					sliceOfValues[index] = decToBin(result) + "b"
+					sliceOfValues[index+1] = decToBin(result2) + "b"
+				} else {
+					sliceOfValues[index] = result
+					sliceOfValues[index+1] = result2
+				}
+			} else {
+				sliceOfValues[index] = result
+			}
 		}
 	}
 
-	fmt.Println(sliceOfValues)
+	fmt.Println()
+	fmt.Println("Result:")
+	for i := range sliceOfVar {
+		fmt.Println(sliceOfVar[i], sliceOfValues[i])
+	}
 
 	if err := scanner.Err(); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func IsHex(num string) (string, error) {
-	dec, err := strconv.Atoi(num)
+func hexToDec(hex string) int {
+	dec, err := strconv.ParseInt(hex, 16, 64)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-	if strings.Contains(num, "h") {
-		hex := strconv.FormatInt(int64(dec), 16)
-		return hex, nil
-	}
-	return "", errors.New("invalid hex")
+	return int(dec)
 }
 
-func HexToDec(hex string) (string, error) {
-	num, err := strconv.ParseInt(hex, 16, 64)
+func binToDec(bin string) int {
+	dec, err := strconv.ParseInt(bin, 2, 64)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-	return strconv.Itoa(int(num)), nil
+	return int(dec)
 }
 
-/*
-func BinToDec(bin string) (string, error) {
-	num, err := strconv.ParseInt(bin, 2, 64)
+func decToHex(dec string) string {
+	hex, err := strconv.ParseInt(dec, 10, 64)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-	return strconv.Itoa(int(num)), nil
-}*/
-
-func DecToHex(dec int) string {
-	hex := strconv.FormatInt(int64(dec), 16)
-	return hex
+	return fmt.Sprintf("%x", hex)
 }
 
-/*
-func DecToBin(dec int) string {
-	bin := strconv.FormatInt(int64(dec), 2)
-	return bin
-}*/
+func decToBin(dec string) string {
+	bin, err := strconv.ParseInt(dec, 10, 64)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return fmt.Sprintf("%b", bin)
+}

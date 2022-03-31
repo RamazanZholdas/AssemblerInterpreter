@@ -1,4 +1,10 @@
+inc_procedure:
 VAR_A DB 6
-VAR_B DB 1
-ADD VAR_A VAR_B
 INC VAR_A
+ret
+dec_procedure:
+VAR_A DB 6
+DEC VAR_A
+ret
+CALL inc_procedure
+CALL dec_procedure
